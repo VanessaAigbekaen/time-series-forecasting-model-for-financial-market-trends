@@ -10,4 +10,4 @@ print(data.head())
 # Save to CSV
 data.to_csv("SPY_data.csv")
 
-print("✅ Dataset saved as SPY_data.csv")
+print("Dataset saved as SPY_data.csv")
