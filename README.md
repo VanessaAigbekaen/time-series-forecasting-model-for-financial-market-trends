@@ -1,75 +1,140 @@
-# time-series-forecasting-model-for-financial-market-trends
-AI Market Forecasting System
+# 📊 SPY AI Market Dashboard
 
-A machine learning-based market forecasting system developed using historical SPY financial data to analyze market trends and predict potential future market direction. The project combines financial analysis, technical indicators, and machine learning models to identify hidden market patterns and generate probabilistic trading signals.
+A machine learning project that predicts the next-day direction (up/down) of the SPY ETF using historical price data and technical indicators, served through an interactive Streamlit dashboard.
 
-Project Overview
+> **Disclaimer:** This project is for educational purposes only. It does not constitute financial advice.
 
-This project focuses on predicting market direction (UP / DOWN / NEUTRAL) using historical stock market data and technical indicators. The system was designed to explore how machine learning can be applied to financial forecasting while also understanding the practical limitations and unpredictability of financial markets.
+---
 
-The project includes:
-Data cleaning and preprocessing
-Feature engineering using technical indicators
-Machine learning model training and evaluation
-Risk and confidence analysis
-GUI-based prediction system for market forecasting
+## Overview
 
-Features:
-Historical SPY market data analysis
-Technical indicators:
-True Range (TR)
-Average True Range (ATR)
-Relative Strength Index (RSI)
-Machine learning classification models:
-K-Nearest Neighbors (KNN)
-Logistic Regression
-Naive Bayes
-Random Forest
-Gradient Boosting
-Model evaluation using:
-Accuracy Scores
-Confusion Matrix
-ROC Curves
-AUC Scores
-GUI interface for live market direction prediction
-Confidence and risk analysis integration
+This project has two parts:
 
-Technologies Used:
-Python
-NumPy
-Pandas
-Scikit-learn
-Matplotlib
-Tkinter
-Joblib
-Yahoo Finance API (yfinance)
+1. **`stock_market.ipynb`** — a Jupyter notebook that loads historical SPY OHLCV (Open/High/Low/Close/Volume) data, engineers technical indicator features, trains and compares two classifiers, and saves the best-performing model to disk.
+2. **`app.py`** — a Streamlit dashboard that loads the trained model and the same dataset, displays live technical indicators, and shows the model's prediction for the next day's market direction.
 
+The two files share a single feature contract (see below), so a model trained by the notebook can always be loaded and used correctly by the dashboard.
 
-Machine Learning Workflow:
-Data Collection
-Historical SPY market data collected from Yahoo Finance.
-Data Cleaning & Preprocessing
-Removed missing/invalid values and prepared the dataset for training.
-Feature Engineering
-Added financial technical indicators such as ATR, RSI, and True Range to improve pattern recognition.
-Model Training
-Trained and compared multiple machine learning algorithms.
-Model Evaluation
-Evaluated models using ROC curves, AUC scores, confusion matrices, and validation/test accuracy.
-GUI Development
-Built a Python GUI system capable of predicting market direction and displaying confidence/risk levels.
+---
 
-Disclaimer
+## Features Used
 
-This project was created for educational and research purposes only. Financial markets are highly unpredictable and no machine learning model can guarantee profits or eliminate trading risk. This system should not be considered financial advice.
+Both the notebook and the app engineer the same 8 features, in the same order:
 
-Future Improvements:
-Add MACD indicator support
-Improve model balancing and prediction confidence
-Add candlestick visualization dashboard
-Introduce multi-timeframe analysis (Daily + 4H)
-Deploy as a web application
-Implement backtesting and paper trading simulation
+| # | Feature | Description |
+|---|---------|-------------|
+| 1 | `Close` | Daily closing price |
+| 2 | `High` | Daily high price |
+| 3 | `Low` | Daily low price |
+| 4 | `Open` | Daily opening price |
+| 5 | `Volume` | Daily trading volume |
+| 6 | `TR` (True Range) | `max(high-low, \|high-prev_close\|, \|low-prev_close\|)` — measures a single day's price movement |
+| 7 | `ATR` (Average True Range) | 14-day rolling average of True Range — a smoothed volatility measure |
+| 8 | `RSI` (Relative Strength Index) | 14-day momentum oscillator, `100 - 100/(1+RS)` — flags overbought (>70) / oversold (<30) conditions |
 
-Author
-Developed by Vanessa Aigbekaen as an Artificial Intelligence and Financial Market Forecasting project.
+**Target:** binary label — `1` if next day's close is higher than today's close, `0` otherwise.
+
+> ⚠️ **Feature contract:** the model is trained on exactly these 8 columns, in this exact order. If you change the feature engineering in the notebook, you must update `FEATURE_COLUMNS` in `app.py` to match, or predictions will fail with a `ValueError` about the number of features.
+
+---
+
+## Models
+
+Two classifiers are trained and compared on a held-out validation set:
+
+- **Logistic Regression**
+- **Gaussian Naive Bayes**
+
+For each model, the notebook reports validation/test accuracy, plots a confusion matrix, and plots an ROC curve. The model with the higher validation accuracy is automatically selected and saved to `best_spy_model.joblib`.
+
+---
+
+## Project Structure
+
+```
+.
+├── stock_market.ipynb       # Data loading, feature engineering, model training
+├── app.py                   # Streamlit dashboard (prediction, charts, indicators)
+├── SPY_data.csv             # Historical SPY OHLCV data (not included — see below)
+├── best_spy_model.joblib    # Trained model (generated by the notebook)
+└── README.md
+```
+
+---
+
+## Getting Started
+
+### 1. Clone the repo
+
+```bash
+git clone https://github.com/<your-username>/<your-repo>.git
+cd <your-repo>
+```
+
+### 2. Create and activate a virtual environment
+
+```bash
+python -m venv .venv
+
+# Windows (PowerShell)
+.venv\Scripts\Activate.ps1
+
+# macOS / Linux
+source .venv/bin/activate
+```
+
+### 3. Install dependencies
+
+```bash
+python -m pip install numpy pandas matplotlib scikit-learn joblib streamlit plotly ipykernel
+```
+
+### 4. Add the dataset
+
+Place `SPY_data.csv` in the project root. The expected format is a CSV with 2 header rows (as typically exported from Yahoo Finance), with columns for Date, Close, High, Low, Open, and Volume.
+
+### 5. Train the model
+
+Open `stock_market.ipynb` in Jupyter or VS Code and run all cells top to bottom. This will:
+- Build the 8 features described above
+- Train Logistic Regression and Naive Bayes models
+- Print validation/test accuracy and plot evaluation charts
+- Save the best model as `best_spy_model.joblib`
+
+### 6. Run the dashboard
+
+```bash
+python -m streamlit run app.py
+```
+
+This opens the dashboard in your browser at `http://localhost:8501`, showing:
+- **Dashboard** — predicted direction, model confidence, risk level, and latest price
+- **Market Charts** — candlestick chart of recent price action
+- **Technical Indicators** — RSI and ATR charts over time
+- **About** — project description
+
+---
+
+## Key Engineering Decisions
+
+A few notes on design choices worth calling out (useful if you're asked about this project in an interview):
+
+- **Idempotent feature-building cell:** the notebook builds all features from the raw CSV inside a single self-contained cell, rather than incrementally appending columns to a shared variable across multiple cells. This avoids a subtle bug where re-running cells out of order in Jupyter can silently duplicate columns and desync the model's expected feature count.
+- **Matching rolling-window semantics:** ATR uses `min_periods=1` (partial average available immediately), while RSI uses `min_periods=14` (waits for a full window). The notebook's NumPy implementation replicates both behaviors exactly to match the app's pandas implementation, so the model sees the same numbers at train time and at inference time.
+- **Fail loudly, not silently:** the notebook asserts the feature count is exactly 8 before saving the model, and `app.py` checks `model.n_features_in_` against the features it's about to send, raising a clear error if they ever drift out of sync again — instead of a confusing scikit-learn stack trace.
+
+---
+
+## Tech Stack
+
+- **Python**, **NumPy**, **pandas**
+- **scikit-learn** (Logistic Regression, Gaussian Naive Bayes, train/test splitting, evaluation metrics)
+- **Streamlit** (dashboard UI)
+- **Plotly** (interactive charts)
+- **joblib** (model persistence)
+
+---
+
+## Disclaimer
+
+This project is built for learning purposes to explore technical indicators, classification models, and interactive dashboards. Predictions are based on historical patterns only and should not be used to make real investment decisions.
